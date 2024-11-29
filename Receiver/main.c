@@ -11,10 +11,6 @@ const char* password = "honestresort661";
 // Web server on port 80
 WebServer server(80);
 
-// LoRa Parameters (Dummy Data for Testing)
-String temperature = "25.0";
-String humidity = "60.0";
-String pressure = "1012.0";
 
 // HTML Template
 const char* htmlTemplate = R"rawliteral(
@@ -86,8 +82,7 @@ void setup() {
 }
 
 void loop() {
-  // Simulate incoming LoRa data (for testing)
-  // Replace this with actual LoRa data reception logic
+
   static unsigned long lastUpdate = 0;
   if (millis() - lastUpdate > 5000) {
     lastUpdate = millis();
