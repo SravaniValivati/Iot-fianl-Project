@@ -8,9 +8,18 @@ const char* ssid = "SpectrumSetup-C70F";
 const char* password = "honestresort661";
 
 
+// LoRa Parameters
+#define FREQUENCY 866.3
+#define BANDWIDTH 125.0
+#define SPREADING_FACTOR 9
+
+// Store received LoRa data
+String temperature = "0.0";
+String humidity = "0.0";
+String pressure = "0.0";
+
 // Web server on port 80
 WebServer server(80);
-
 
 // HTML Template
 const char* htmlTemplate = R"rawliteral(
@@ -19,16 +28,16 @@ const char* htmlTemplate = R"rawliteral(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LoRa Data Viewer</title>
+  <title>Weather Station</title>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
     .data { margin: 20px; padding: 20px; border: 1px solid #ccc; display: inline-block; }
   </style>
 </head>
 <body>
-  <h1>LoRa Receiver Data</h1>
+  <h1>Weather Station</h1>
   <div class="data">
-    <h2>Latest Data:</h2>
+    <h2>Latest Weather Data:</h2>
     <p id="temperature">Temperature: -- °C</p>
     <p id="humidity">Humidity: -- %</p>
     <p id="pressure">Pressure: -- hPa</p>
@@ -50,17 +59,24 @@ const char* htmlTemplate = R"rawliteral(
 )rawliteral";
 
 void setup() {
-  Serial.begin(115200);
+  heltec_setup();
+  both.println("LoRa Receiver Web Server");
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    both.print(".");
   }
-  Serial.println("\nWiFi Connected!");
-  Serial.print("Access your server at: http://");
-  Serial.println(WiFi.localIP());
+  both.println("\nWiFi Connected!");
+  both.printf("Access the server at: http://%s/\n", WiFi.localIP().toString().c_str());
+
+  // Initialize LoRa
+  RADIOLIB_OR_HALT(radio.begin());
+  RADIOLIB_OR_HALT(radio.setFrequency(FREQUENCY));
+  RADIOLIB_OR_HALT(radio.setBandwidth(BANDWIDTH));
+  RADIOLIB_OR_HALT(radio.setSpreadingFactor(SPREADING_FACTOR));
+  RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
 
   // Define server routes
   server.on("/", HTTP_GET, []() {
@@ -73,22 +89,18 @@ void setup() {
     jsonData += "\"humidity\":\"" + humidity + "\",";
     jsonData += "\"pressure\":\"" + pressure + "\"";
     jsonData += "}";
-    server.send(200, "application/json", jsonData); // Send JSON data
+    server.send(200, "application/json", jsonData); // Serve JSON data
   });
 
   // Start the server
   server.begin();
-  Serial.println("Server started!");
 }
 
 void loop() {
-
-  static unsigned long lastUpdate = 0;
-  if (millis() - lastUpdate > 5000) {
-    lastUpdate = millis();
-    temperature = String(random(20, 35) + random(0, 100) / 100.0); // Random temp between 20.00 and 34.99
-    humidity = String(random(30, 80) + random(0, 100) / 100.0);    // Random humidity between 30.00 and 79.99
-    pressure = String(random(950, 1050) + random(0, 100) / 100.0); // Random pressure between 950.00 and 1049.99
+  // Check for LoRa packets
+  if (radio.readData(temperature, humidity, pressure) == RADIOLIB_ERR_NONE) { 
+    both.printf("Received - Temperature: %s °C, Humidity: %s %%, Pressure: %s hPa\n",
+                temperature.c_str(), humidity.c_str(), pressure.c_str());
   }
 
   // Handle web server requests
