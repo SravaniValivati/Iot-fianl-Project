@@ -1,108 +1,163 @@
+#include <heltec_unofficial.h>
 #include <WiFi.h>
 #include <WebServer.h>
 
 // Wi-Fi Credentials
+const char* ssid = "TwoOSeven1E";
+const char* password = "nenuchepanuponew@207";
 
-// Replace with your network credentials
-const char* ssid = "SpectrumSetup-C70F";
-const char* password = "honestresort661";
+// Store received data
+String receivedData = "{\"temp\":0,\"hum\":0,\"pres\":0}";
 
-
-// LoRa Parameters
-#define FREQUENCY 866.3
-#define BANDWIDTH 125.0
-#define SPREADING_FACTOR 9
-
-// Store received LoRa data
-String temperature = "0.0";
-String humidity = "0.0";
-String pressure = "0.0";
-
-// Web server on port 80
+// Web server
 WebServer server(80);
 
-// HTML Template
-const char* htmlTemplate = R"rawliteral(
+// HTML page to serve with styling and formatted data display
+const char* htmlPage = R"rawliteral(
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weather Station</title>
+  <title>LoRa Receiver Data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-    .data { margin: 20px; padding: 20px; border: 1px solid #ccc; display: inline-block; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #0078d7;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      padding: 20px;
+    }
+    .data-box {
+      background-color: white;
+      padding: 20px;
+      margin: 0 auto;
+      max-width: 600px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 120, 215, 0.3);
+    }
+    .data-title {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+      color: #0078d7;
+    }
+    .data-content {
+      font-size: 1.2em;
+      line-height: 1.6;
+    }
+    .data-content span {
+      font-weight: bold;
+    }
+    @media (max-width: 600px) {
+      .data-box {
+        padding: 15px;
+      }
+      .data-title {
+        font-size: 1.3em;
+      }
+      .data-content {
+        font-size: 1em;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Weather Station</h1>
-  <div class="data">
-    <h2>Latest Weather Data:</h2>
-    <p id="temperature">Temperature: -- °C</p>
-    <p id="humidity">Humidity: -- %</p>
-    <p id="pressure">Pressure: -- hPa</p>
+  <div class="header">
+    <h1>LoRa Receiver Data</h1>
+  </div>
+  <div class="container">
+    <div class="data-box">
+      <div class="data-title">Latest Data:</div>
+      <div class="data-content">
+        <p>Temperature: <span id="temp">--</span> °C</p>
+        <p>Humidity: <span id="hum">--</span> %</p>
+        <p>Pressure: <span id="pres">--</span> hPa</p>
+      </div>
+    </div>
   </div>
   <script>
-    setInterval(() => {
+    function fetchData() {
       fetch('/data')
         .then(response => response.json())
         .then(data => {
-          document.getElementById('temperature').textContent = `Temperature: ${data.temperature} °C`;
-          document.getElementById('humidity').textContent = `Humidity: ${data.humidity} %`;
-          document.getElementById('pressure').textContent = `Pressure: ${data.pressure} hPa`;
+          document.getElementById('temp').innerText = data.temp;
+          document.getElementById('hum').innerText = data.hum;
+          document.getElementById('pres').innerText = data.pres;
         })
-        .catch(err => console.error('Error fetching data:', err));
-    }, 2000);
+        .catch(error => console.error('Error fetching data:', error));
+    }
+    setInterval(fetchData, 3000);
+    fetchData();
   </script>
 </body>
 </html>
 )rawliteral";
 
+// Function prototypes
+void handleRoot();
+void handleData();
+
+#define FREQUENCY 866.3
+#define BANDWIDTH 125.0
+#define SPREADING_FACTOR 9
+
 void setup() {
   heltec_setup();
-  both.println("LoRa Receiver Web Server");
+  both.println("LoRa Receiver Test");
 
-  // Connect to Wi-Fi
+  // Initialize Wi-Fi
   WiFi.begin(ssid, password);
+  both.print("Connecting to Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     both.print(".");
   }
-  both.println("\nWiFi Connected!");
-  both.printf("Access the server at: http://%s/\n", WiFi.localIP().toString().c_str());
+  both.println("\nWi-Fi Connected!");
+  String ip = WiFi.localIP().toString();
+  both.printf("Access the web server at: http://%s/\n", ip.c_str());
 
-  // Initialize LoRa
+  // Initialize Radio
   RADIOLIB_OR_HALT(radio.begin());
   RADIOLIB_OR_HALT(radio.setFrequency(FREQUENCY));
   RADIOLIB_OR_HALT(radio.setBandwidth(BANDWIDTH));
   RADIOLIB_OR_HALT(radio.setSpreadingFactor(SPREADING_FACTOR));
   RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
 
-  // Define server routes
-  server.on("/", HTTP_GET, []() {
-    server.send(200, "text/html", htmlTemplate); // Serve the HTML page
-  });
-
-  server.on("/data", HTTP_GET, []() {
-    String jsonData = "{";
-    jsonData += "\"temperature\":\"" + temperature + "\",";
-    jsonData += "\"humidity\":\"" + humidity + "\",";
-    jsonData += "\"pressure\":\"" + pressure + "\"";
-    jsonData += "}";
-    server.send(200, "application/json", jsonData); // Serve JSON data
-  });
-
-  // Start the server
+  // Setup web server routes
+  server.on("/", handleRoot);
+  server.on("/data", handleData);
   server.begin();
+  both.println("Web server started.");
 }
 
 void loop() {
-  // Check for LoRa packets
-  if (radio.readData(temperature, humidity, pressure) == RADIOLIB_ERR_NONE) { 
-    both.printf("Received - Temperature: %s °C, Humidity: %s %%, Pressure: %s hPa\n",
-                temperature.c_str(), humidity.c_str(), pressure.c_str());
-  }
+  server.handleClient(); // Handle web server requests
 
-  // Handle web server requests
-  server.handleClient();
+  String receivedMessage;
+  int state = radio.readData(receivedMessage);
+  if (state == RADIOLIB_ERR_NONE) {
+    both.printf("Raw Data Received: %s\n", receivedMessage.c_str());
+    receivedData = receivedMessage; // Update the receivedData variable
+  } else if (state == RADIOLIB_ERR_RX_TIMEOUT) {
+    // No data received, do nothing
+  } else {
+    both.printf("Error reading data: %d\n", state);
+  }
+  // keeping the web server responsive
+}
+
+void handleRoot() {
+  server.send(200, "text/html", htmlPage);
+}
+
+void handleData() {
+  both.printf("Serving receivedData: %s\n", receivedData.c_str());
+  server.send(200, "application/json", receivedData);
 }
