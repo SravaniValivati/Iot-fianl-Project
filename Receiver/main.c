@@ -76,7 +76,7 @@ const char* htmlPage = R"rawliteral(
     <div class="data-box">
       <div class="data-title">Latest Data:</div>
       <div class="data-content">
-        <p>Temperature: <span id="temp">--</span> °C</p>
+        <p>Temperature: <span id="temp">--</span> C</p>
         <p>Humidity: <span id="hum">--</span> %</p>
         <p>Pressure: <span id="pres">--</span> hPa</p>
       </div>
