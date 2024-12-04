@@ -1,10 +1,11 @@
+
 #include <heltec_unofficial.h>
 #include <WiFi.h>
 #include <WebServer.h>
 
 // Wi-Fi Credentials
-const char* ssid = "TwoOSeven1E";
-const char* password = "nenuchepanuponew@207";
+const char* ssid = "";
+const char* password = "";
 
 // Store received data
 String receivedData = "{\"temp\":0,\"hum\":0,\"pres\":0}";
@@ -19,70 +20,23 @@ const char* htmlPage = R"rawliteral(
 <head>
   <title>LoRa Receiver Data</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f0f2f5;
-      margin: 0;
-      padding: 0;
-    }
-    .header {
-      background-color: #0078d7;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-    .container {
-      padding: 20px;
-    }
-    .data-box {
-      background-color: white;
-      padding: 20px;
-      margin: 0 auto;
-      max-width: 600px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 120, 215, 0.3);
-    }
-    .data-title {
-      font-size: 1.5em;
-      margin-bottom: 10px;
-      color: #0078d7;
-    }
-    .data-content {
-      font-size: 1.2em;
-      line-height: 1.6;
-    }
-    .data-content span {
-      font-weight: bold;
-    }
-    @media (max-width: 600px) {
-      .data-box {
-        padding: 15px;
-      }
-      .data-title {
-        font-size: 1.3em;
-      }
-      .data-content {
-        font-size: 1em;
-      }
-    }
-  </style>
 </head>
 <body>
-  <div class="header">
-    <h1>LoRa Receiver Data</h1>
-  </div>
-  <div class="container">
-    <div class="data-box">
-      <div class="data-title">Latest Data:</div>
-      <div class="data-content">
-        <p>Temperature: <span id="temp">--</span> C</p>
-        <p>Humidity: <span id="hum">--</span> %</p>
-        <p>Pressure: <span id="pres">--</span> hPa</p>
-      </div>
-    </div>
-  </div>
+  <div id="content"></div>
+  <script src="https://sravanivalivati.github.io/webserver/main.js"></script>
   <script>
+    function loadExternalHTML(url, elementId) {
+      fetch(url)
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById(elementId).innerHTML = data;
+        })
+        .catch(error => console.error('Error loading external HTML:', error));
+    }
+
+    // Load the GitHub HTML content
+    loadExternalHTML('https://sravanivalivati.github.io/webserver/index.html', 'content');
+    
     function fetchData() {
       fetch('/data')
         .then(response => response.json())
@@ -150,7 +104,7 @@ void loop() {
   } else {
     both.printf("Error reading data: %d\n", state);
   }
-  // keeping the web server responsive
+  // Do not include delay to keep the web server responsive
 }
 
 void handleRoot() {
@@ -161,3 +115,4 @@ void handleData() {
   both.printf("Serving receivedData: %s\n", receivedData.c_str());
   server.send(200, "application/json", receivedData);
 }
+
