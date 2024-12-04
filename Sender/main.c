@@ -1,37 +1,69 @@
-
 #include <heltec_unofficial.h>
+#include <DHT.h>
 
-#define FREQUENCY 866.3       // Frequency in MHz
-#define BANDWIDTH 125.0       // Bandwidth in kHz
-#define SPREADING_FACTOR 9    // Spreading Factor
-#define TRANSMIT_POWER 14     // Transmit Power in dBm
+// LoRa Parameters
+#define FREQUENCY 866.3
+#define BANDWIDTH 125.0
+#define SPREADING_FACTOR 9
+
+// DHT11 Sensor Configuration
+#define DHTPIN 33       // GPIO pin connected to the DHT22 data pin
+#define DHTTYPE DHT22   // DHT22 sensor type
+
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
-  heltec_setup(); // Initialize Heltec device
-  both.println("Transmitter ready");
-  
-  // Initialize LoRa module
+  heltec_setup();
+  both.println("LoRa Sender Ready");
+
+  // Initialize DHT11 sensor
+  dht.begin();
+
+  // Initialize LoRa
   RADIOLIB_OR_HALT(radio.begin());
   RADIOLIB_OR_HALT(radio.setFrequency(FREQUENCY));
   RADIOLIB_OR_HALT(radio.setBandwidth(BANDWIDTH));
   RADIOLIB_OR_HALT(radio.setSpreadingFactor(SPREADING_FACTOR));
-  RADIOLIB_OR_HALT(radio.setOutputPower(TRANSMIT_POWER));
+  RADIOLIB_OR_HALT(radio.setOutputPower(20)); // Max power for range testing
+
+  // Display initial message
+  display.clear();
+  display.drawString(0, 0, "LoRa Sender Ready");
+  display.display();
 }
 
 void loop() {
-  // Generate random values for temperature, humidity, and pressure
-  float temperature = random(15, 40) + random(0, 100) / 100.0; // Random temp between 15.00 and 40.99
-  float humidity = random(20, 100) + random(0, 100) / 100.0;   // Random humidity between 20.00 and 99.99
-  float pressure = random(900, 1100) + random(0, 100) / 100.0; // Random pressure between 900.00 and 1099.99
+  // Wait at least 2 seconds between DHT22 readings
+  delay(2000);
 
-  // Format data as a JSON-like string
-  String message = String("{\"temp\":") + temperature +
-                   ",\"hum\":" + humidity +
-                   ",\"pres\":" + pressure + "}";
+  // Read temperature and humidity from DHT22
+  float temperature = dht.readTemperature();  // Temperature in Celsius
+  float humidity = dht.readHumidity();        // Humidity in %
 
-  // Transmit the message
+  // Check if any reads failed and exit early (to try again)
+  if (isnan(temperature) || isnan(humidity)) {
+    both.println("Failed to read from DHT sensor!");
+    display.clear();
+    display.drawString(0, 0, "Sensor Error!");
+    display.display();
+    return;
+  }
+
+  // Create JSON message without pressure
+  String message = "{\"temp\":" + String(temperature) +
+                   ",\"hum\":" + String(humidity) + "}";
+
+  // Send the message over LoRa
   both.printf("Sending: %s\n", message.c_str());
   RADIOLIB(radio.transmit(message.c_str()));
 
-  delay(3000); // Wait 3 seconds before sending the next set of values
+  // Display sent data on OLED
+  display.clear();
+  display.drawString(0, 0, "Sending Data...");
+  display.drawString(0, 15, "Temp: " + String(temperature) + " C");
+  display.drawString(0, 30, "Hum: " + String(humidity) + " %");
+  display.display();
+
+  // Wait 3 seconds before sending the next message
+  delay(3000);
 }
