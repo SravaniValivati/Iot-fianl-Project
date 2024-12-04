@@ -1,69 +1,176 @@
-<!DOCTYPE HTML><html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
-  <title>ESP32 (LoRa + Server)</title>
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snowy Winter Scene</title>
   <style>
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      background: linear-gradient(to bottom, black, #60759c); 
+      position: relative;
+    }
+
+    .header {
+      background-color: #004333;
+      color: white;
+      padding: 20px;
       text-align: center;
     }
-    header {
-      margin: 0;
-      padding-top: 5vh;
-      padding-bottom: 5vh;
-      overflow: hidden;
-      background-image: url(winter.jpg);
-      background-size: cover;
+
+    .container {
+      padding: 20px;
+    }
+
+    p {
       color: white;
     }
-    h2 {
-      font-size: 2.0rem;
+
+    .data-box {
+      padding: 10px;
+      margin: 8% auto;
+      max-width: 600px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 120, 215, 0.3);
+      background-color: rgba(255, 255, 255, 0.1);
+      z-index: 5;
     }
-    p { font-size: 1.2rem; }
-    .units { font-size: 1.2rem; }
-    .readings { font-size: 2.0rem; }
+
+    .data-title {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+      color: #0078d7;
+    }
+
+    .data-content {
+      font-size: 1.2em;
+      line-height: 1.6;
+    }
+
+    .data-content span {
+      font-weight: bold;
+    }
+
+    .logo-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      align-items: center;
+      z-index: 2;
+      background-color: #004333;
+      width: 100%;
+    }
+
+    .logo {
+      width: 100px;
+    }
+
+    .logo1 {
+      width: 350px;
+    }
+
+    .snowflake {
+      position: absolute;
+      color: #ebfff3;
+      font-size: 1em;
+      animation: fall linear forwards;
+      z-index: 50;
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translateY(-100px);
+      }
+      100% {
+        transform: translate(var(--random-x), var(--random-y)) rotate(var(--random-rotate));
+      }
+    }
+
+    .tree {
+      position: absolute;
+      z-index: 1;
+      width: auto;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h2>ESP32 (LoRa + Server)</h2>
-    <p><strong>Last received packet:<br/><span id="timestamp">%TIMESTAMP%</span></strong></p>
-    <p>LoRa RSSI: <span id="rssi">%RSSI%</span></p>
-  </header>
-<main>
-  <p>
-    <i class="fas fa-thermometer-half" style="color:#059e8a;"></i> Temperature: <span id="temperature" class="readings">%TEMPERATURE%</span>
-    <sup>&deg;C</sup>
-  </p>
-  <p>
-    <i class="fas fa-tint" style="color:#00add6;"></i> Humidity: <span id="humidity" class="readings">%HUMIDITY%</span>
-    <sup>&#37;</sup>
-  </p>
-  <p>
-    <i class="fas fa-angle-double-down" style="color:#e8c14d;"></i> Pressure: <span id="pressure" class="readings">%PRESSURE%</span>
-    <sup>hpa</sup>
-  </p>
-</main>
-<script>
-setInterval(updateValues, 10000, "temperature");
-setInterval(updateValues, 10000, "humidity");
-setInterval(updateValues, 10000, "pressure");
-setInterval(updateValues, 10000, "rssi");
-setInterval(updateValues, 10000, "timestamp");
 
-function updateValues(value) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById(value).innerHTML = this.responseText;
-    }
+<div class="logo-container">
+  <img src="https://raw.githubusercontent.com/SravaniValivati/webserver/main/bu.png" alt="Binghamton University Logo" class="logo">
+  <img src="https://raw.githubusercontent.com/SravaniValivati/webserver/main/binghamton-university.png" alt="Binghamton University Logo" class="logo1">
+
+</div>
+
+
+
+<div class="container">
+  <div class="data-box">
+    <div class="data-title">Latest Data:</div>
+    <div class="data-content">
+      <p>Temperature: <span id="temp">--</span> °C</p>
+      <p>Humidity: <span id="hum">--</span> %</p>
+      <p>Pressure: <span id="pres">--</span> hPa</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.onload = function() {
+    startSnowfall();
+    addTrees();
   };
-  xhttp.open("GET", "/" + value, true);
-  xhttp.send();
-}
+
+  function startSnowfall() {
+    const createSnowflake = () => {
+      const snowflake = document.createElement("div");
+      snowflake.classList.add("snowflake");
+      snowflake.textContent = "\u2744"; // Snowflake emoji
+
+      const leftPosition = Math.random() * window.innerWidth + "px";
+      const randomX = Math.random() * 300 - 150;
+      const randomY = Math.random() * 300 + 550;
+      const randomRotate = Math.random() * 360;
+
+      snowflake.style.left = leftPosition;
+      snowflake.style.top = "-50px";
+      snowflake.style.animationDuration = Math.random() * 3 + 2 + "s";
+      snowflake.style.fontSize = Math.random() * 10 + 1 + "px";
+      snowflake.style.setProperty('--random-x', randomX + 'px');
+      snowflake.style.setProperty('--random-y', randomY + 'px');
+      snowflake.style.setProperty('--random-rotate', randomRotate + 'deg');
+
+      document.body.appendChild(snowflake);
+
+      setTimeout(() => snowflake.remove(), 5000); // Remove snowflake after 5 seconds
+    };
+
+    setInterval(createSnowflake, 100);
+  }
+
+  function addTrees() {
+    const numberOfTrees = 6;
+    let lastPosition = -250;
+
+    for (let i = 0; i < numberOfTrees; i++) {
+      const gap = Math.random() * (250 - 150) + 150;
+      const newPosition = lastPosition + gap;
+      lastPosition = newPosition;
+
+      if (newPosition > window.innerWidth - 100) break;
+
+      const tree = document.createElement("img");
+      tree.classList.add('tree');
+      tree.src = "https://raw.githubusercontent.com/SravaniValivati/webserver/main/tree.png"; // Update with actual path
+      tree.style.left = newPosition + "px";
+      tree.style.bottom = "-55px";
+      tree.style.height = Math.random() * 100 + 250 + "px";
+      document.body.appendChild(tree);
+    }
+  }
 </script>
+
 </body>
 </html>
