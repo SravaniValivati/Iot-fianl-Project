@@ -110,7 +110,20 @@ This project demonstrates a LoRa-based communication system where a sender node 
 2. To reinitialize, follow the setup instructions above.
 
 ---
-
+## Contribution of Team Members
+  # Sai Chandra
+    - Set up the LoRa sender with necessary libraries.
+    - Configured the sender for seamless communication.
+    - Conducted initial testing to ensure proper data transmission.
+  # Deepak
+    - Configured the receiver to accept messages from the transmitter.
+    - Initialized the DHT22 sensor to capture temperature, humidity, and pressure values.
+    - Verified successful data capture by the receiver from the LoRa sender.
+  # Sravani
+    - Set up the ESP32 web server to display data.
+    - Handled real-time data updates through API integration.
+    - Configured Wi-Fi for stable communication.
+    - Developed the HTML/CSS interface with real-time JavaScript updates.
 ## Notes
 
 - Ensure both nodes are configured to use the same LoRa parameters (frequency, bandwidth, spreading factor).
